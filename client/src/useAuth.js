@@ -1,33 +1,45 @@
-import { useEffect, useState } from 'react'
-import axios from 'axios'
+import { useState, useEffect } from "react"
+import axios from "axios"
 
 export default function useAuth(code) {
-    const [accessToken, setaccessToken] = useState()
-    const [refreshToken, setrefreshToken] = useState()
-    const [expiresIn, setexpiresIn] = useState()
+    const [accessToken, setAccessToken] = useState()
+    const [refreshToken, setRefreshToken] = useState()
+    const [expiresIn, setExpiresIn] = useState()
 
     useEffect(() => {
-        axios.post('http://localhost:3001/login', {
-            code,
-        }).then(res => {
-            setaccessToken(res.data.accessToken)
-            setrefreshToken(res.data.refreshToken)
-            setexpiresIn(res.data.expiresIn)
-            window.history.pushState({}, null, "/")
-        }).catch(() => {
-            window.location = '/'
-        })
+        axios
+            .post("http://localhost:3001/login", {
+                code,
+            })
+            .then(res => {
+                setAccessToken(res.data.accessToken)
+                setRefreshToken(res.data.refreshToken)
+                setExpiresIn(res.data.expiresIn)
+                window.history.pushState({}, null, "/")
+            })
+            .catch(() => {
+                window.location = "/"
+            })
     }, [code])
 
     useEffect(() => {
-        axios.post('http://localhost:3001/refresh', {
-            refreshToken,
-        }).then(res => {
-            setaccessToken(res.data.accessToken)
-            setexpiresIn(res.data.expiresIn)
-        }).catch(() => {
-            window.location = '/'
-        })
+        if (!refreshToken || !expiresIn) return
+        const interval = setInterval(() => {
+            axios
+                .post("http://localhost:3001/refresh", {
+                    refreshToken,
+                })
+                .then(res => {
+                    setAccessToken(res.data.accessToken)
+                    setExpiresIn(res.data.expiresIn)
+                })
+                .catch(() => {
+                    window.location = "/"
+                })
+        }, (expiresIn - 60) * 1000)
+
+        return () => clearInterval(interval)
     }, [refreshToken, expiresIn])
+
     return accessToken
 }
